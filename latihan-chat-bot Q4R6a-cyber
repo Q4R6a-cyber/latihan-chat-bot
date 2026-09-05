@@ -1,0 +1,57 @@
+import streamlit as st
+import os
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+# 1. Tampilan Halaman (Tanpa menu samping/sidebar)
+st.set_page_config(page_title="ProducAI - Asisten Santai", page_icon="🚀", layout="centered")
+st.title("🚀 Sobat Produktif-mu")
+st.caption("Bantu atur jadwal, to-do list, sampai ngasih tips biar kamu nggak males-malesan!")
+st.divider()
+
+# 2. TANAM API KEY KAMU DI SINI
+# Ganti tulisan di dalam tanda kutip dengan API Key aslimu
+os.environ["GOOGLE_API_KEY"] = "MASUKKAN_API_KEY_ASLI_KAMU_DI_SINI"
+
+# 3. Membangunkan Gemini (MENGGUNAKAN NAMA MODEL YANG BARU)
+client = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest")
+
+# 4. MENGATUR PERAN AI & BUKU CATATAN
+if "chat_history" not in st.session_state:
+    instruksi_karakter = SystemMessage(
+        content="Kamu adalah asisten produktivitas pribadi yang asyik, suportif, dan santai. "
+                "Tugasmu membantu user mengatur waktu kerja, menyusun to-do list, memecah tugas besar jadi kecil, "
+                "serta memberi motivasi kalau user sedang malas atau prokrastinasi. "
+                "Gunakan bahasa Indonesia sehari-hari yang santai dan akrab (gunakan sapaan santai seperti aku/kamu), "
+                "hindari bahasa kaku atau robotik. Berikan saran yang praktis dan langsung bisa diterapkan."
+    )
+    st.session_state.chat_history = [instruksi_karakter]
+
+jumlah_pesan = len(st.session_state.chat_history) - 1
+
+if jumlah_pesan == 0:
+    st.info("👋 Halo! Aku siap bantu kamu lebih produktif hari ini. Ada tugas yang numpuk atau jadwal yang mau kita susun bareng?")
+
+for pesan in st.session_state.chat_history:
+    if isinstance(pesan, SystemMessage):
+        continue
+    if isinstance(pesan, HumanMessage):
+        with st.chat_message("user", avatar="🧑‍💻"):
+            st.write(pesan.content)
+    elif isinstance(pesan, AIMessage):
+        with st.chat_message("assistant", avatar="🚀"):
+            st.write(pesan.content)
+
+prompt = st.chat_input("Misal: 'Bantu aku bikin jadwal belajar hari ini dong...'")
+
+if prompt:
+    with st.chat_message("user", avatar="🧑‍💻"):
+        st.write(prompt)
+    st.session_state.chat_history.append(HumanMessage(content=prompt))
+
+    with st.chat_message("assistant", avatar="🚀"):
+        with st.spinner("Lagi mikir strategi nih..."):
+            jawaban = client.invoke(st.session_state.chat_history)
+        st.write(jawaban.content)
+        
+    st.session_state.chat_history.append(jawaban)
